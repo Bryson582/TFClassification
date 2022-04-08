@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph">
+
+    <!--AFragment-->
+    <fragment
+        android:id="@+id/afragment"
+        android:name="cn.edu.dlpu.tfclassification.AFragment"
+        android:label="afragment"
+        tools:layout="@layout/afragment"/>
+    <!--    BFragment-->
+    <fragment
+        android:id="@+id/bfragment"
+        android:name="cn.edu.dlpu.tfclassification.BFragment"
+        android:label="bfragment"
+        tools:layout="@layout/bfragment"/>
+<!--    CFragment-->
+    <fragment
+        android:id="@+id/cfragment"
+        android:name="cn.edu.dlpu.tfclassification.CFragment"
+        android:label="cfragment"
+        tools:layout="@layout/cfragment"/>
+</navigation>
