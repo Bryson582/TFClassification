@@ -31,7 +31,6 @@ public class TFLiteClassificationUtil {
      */
     public TFLiteClassificationUtil(String modelPath) throws Exception {
 
-
         File file = new File(modelPath);
         if (!file.exists()) {
             throw new Exception("model file is not exists!");
@@ -39,23 +38,21 @@ public class TFLiteClassificationUtil {
 
         try {
             Interpreter.Options options = new Interpreter.Options();
-            // 使用多线程预测
+            // 多线程预测
             options.setNumThreads(NUM_THREADS);
-            // 使用Android自带的API或者GPU加速
+            // Android自带的API或者GPU加速
             NnApiDelegate delegate = new NnApiDelegate();
-//            GpuDelegate delegate = new GpuDelegate();
             options.addDelegate(delegate);
             tflite = new Interpreter(file, options);
-            // 获取输入，shape为{1, height, width, 3}
+            // 输入，shape为{1, height, width, 3}
             int[] imageShape = tflite.getInputTensor(tflite.getInputIndex("input_1")).shape();
             DataType imageDataType = tflite.getInputTensor(tflite.getInputIndex("input_1")).dataType();
             inputImageBuffer = new TensorImage(imageDataType);
-            // 获取输入，shape为{1, NUM_CLASSES}
+            // 输入，shape为{1, NUM_CLASSES}
             int[] probabilityShape = tflite.getOutputTensor(tflite.getOutputIndex("Identity")).shape();
             DataType probabilityDataType = tflite.getOutputTensor(tflite.getOutputIndex("Identity")).dataType();
             outputProbabilityBuffer = TensorBuffer.createFixedSize(probabilityShape, probabilityDataType);
-
-            // 添加图像预处理方式
+            // 添加图像预处理 resize and normalize
             imageProcessor = new ImageProcessor.Builder()
                     .add(new ResizeOp(imageShape[1], imageShape[2], ResizeOp.ResizeMethod.NEAREST_NEIGHBOR))
                     .add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD))
@@ -85,6 +82,19 @@ public class TFLiteClassificationUtil {
         return predict(bitmap);
     }
 
+    // 获取概率最大的标签
+    public static int getMaxResult(float[] result) {
+        float probability = 0;
+        int r = 0;
+        for (int i = 0; i < result.length; i++) {
+            if (probability < result[i]) {
+                probability = result[i];
+                r = i;
+            }
+        }
+        return r;
+    }
+
 
     // 数据预处理
     private TensorImage loadImage(final Bitmap bitmap) {
@@ -107,16 +117,4 @@ public class TFLiteClassificationUtil {
         return new float[]{l, results[l]};
     }
 
-    // 获取概率最大的标签
-    public static int getMaxResult(float[] result) {
-        float probability = 0;
-        int r = 0;
-        for (int i = 0; i < result.length; i++) {
-            if (probability < result[i]) {
-                probability = result[i];
-                r = i;
-            }
-        }
-        return r;
-    }
 }

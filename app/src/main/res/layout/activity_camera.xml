@@ -9,14 +9,17 @@
     <cn.edu.dlpu.tfclassification.AutoFitTextureView
         android:id="@+id/texture_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="540dp" />
 
 
     <TextView
         android:id="@+id/result_text"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:layout_below="@+id/texture_view"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:text="识别结果"
-        android:textSize="16sp" />
+        android:text="请点击下列按钮"
+        android:textSize="18sp" />
 </RelativeLayout>

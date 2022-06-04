@@ -2,9 +2,11 @@ package cn.edu.dlpu.tfclassification;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
@@ -20,6 +22,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -27,12 +33,16 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
 
+import org.checkerframework.checker.units.qual.C;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AFragment extends Fragment {
+
 
     private TFLiteClassificationUtil tfLiteClassificationUtil;
     private ImageView imageView;
@@ -43,6 +53,7 @@ public class AFragment extends Fragment {
     private ViewPager viewPager;
     private TabLayout mTabLayout;
     private List<String> mtitle;  //存放底部标题
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -66,16 +77,17 @@ public class AFragment extends Fragment {
         //获取控件 三个按钮
         Button selectImgBtn = getActivity().findViewById(R.id.select_img_btn);
         Button openCamera = getActivity().findViewById(R.id.open_camera);
-        Button objectDetection = getActivity().findViewById(R.id.object_detection);
+//        Button objectDetection = getActivity().findViewById(R.id.object_detection);
         imageView = getActivity().findViewById(R.id.image_view);
         textView = getActivity().findViewById(R.id.result_text);
 
         selectImgBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(Intent.ACTION_PICK);
-                intent.setType("image/*");
-                startActivityForResult(intent, 1);
+                Intent intent = new Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                launcher.launch(intent);
+//                intent.setType("image/*");
+//                startActivityForResult(intent, 1);
             }
         });
         openCamera.setOnClickListener(new View.OnClickListener() {
@@ -83,14 +95,6 @@ public class AFragment extends Fragment {
             public void onClick(View v) {
                 // 打开实时拍摄识别页面
                 Intent intent = new Intent(getActivity(), CameraActivity.class);
-                startActivity(intent);
-            }
-        });
-        objectDetection.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //, 打开实时摄像头进行目标检测
-                Intent intent = new Intent(getActivity(),ObjectDetection.class);
                 startActivity(intent);
             }
         });
@@ -110,47 +114,97 @@ public class AFragment extends Fragment {
         // 我们要查看一下Fragment中对类的实例化的用法
         try {
             tfLiteClassificationUtil = new TFLiteClassificationUtil(classificationModelPath);
-            Toast.makeText(getActivity(), "模型加载成功！", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "图像识别模型加载成功！", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            Toast.makeText(getActivity(), "模型加载失败！", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "图像识别模型加载失败！", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
             getActivity().finish();
         }
 
-
-
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        String image_path;
-        if (resultCode == Activity.RESULT_OK) {
-            if (requestCode == 1) {
-                if (data == null) {
-                    Log.w("onActivityResult", "user photo data is null");
-                    return;
-                }
-                Uri image_uri = data.getData();
-                image_path = getPathFromURI(getActivity(), image_uri);
-                try {
+    public final ActivityResultLauncher<Intent> launcher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK
+                        && result.getData() != null) {
+                    Uri image_uri = result.getData().getData();
+                    //use photoUri here
+                    String image_path;
+                    image_path = getPathFromURI(getActivity(), image_uri);
+                    try {
                     // 预测图像
                     FileInputStream fis = new FileInputStream(image_path);
                     imageView.setImageBitmap(BitmapFactory.decodeStream(fis));
                     long start = System.currentTimeMillis();
-                    float[] result = tfLiteClassificationUtil.predictImage(image_path);
+                    float[] result1 = tfLiteClassificationUtil.predictImage(image_path);
                     long end = System.currentTimeMillis();
-                    String show_text = "预测结果标签：" + (int) result[0] +
-                            "\n名称：" +  classNames.get((int) result[0]) +
-                            "\n概率：" + result[1] +
-                            "\n时间：" + (end - start) + "ms";
+                    DecimalFormat df = new DecimalFormat("0.00%");
+                    String show_text =
+                            "名称：" +  classNames.get((int) result1[0]) +
+                            "\n概率：" + df.format(result1[1])  +
+                            "\n时间：" + (end-start)+ "ms";
                     textView.setText(show_text);
+
+                    DatabaseHelper databaseHelper = new DatabaseHelper(getActivity());
+                    SQLiteDatabase sqLiteDatabase = databaseHelper.getWritableDatabase();
+                    ContentValues cv = new ContentValues();
+                    cv.put("NAME"," 名称：" +  classNames.get((int) result1[0]) +
+                            " 概率：" + df.format(result1[1])  +
+                            " 预测时间：" + (end-start) + "ms");
+                    sqLiteDatabase.insert("Users_Table",null,cv);
+                    sqLiteDatabase.close();
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+
+                }
             }
-        }
-    }
+    );
+
+//    @Override
+//    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        String image_path;
+//        if (resultCode == Activity.RESULT_OK) {
+//            if (requestCode == 1) {
+//                if (data == null) {
+//                    Log.w("onActivityResult", "user photo data is null");
+//                    return;
+//                }
+//                Uri image_uri = data.getData();
+//                image_path = getPathFromURI(getActivity(), image_uri);
+//                try {
+//                    // 预测图像
+//                    FileInputStream fis = new FileInputStream(image_path);
+//                    imageView.setImageBitmap(BitmapFactory.decodeStream(fis));
+//                    long start = System.currentTimeMillis();
+//                    float[] result = tfLiteClassificationUtil.predictImage(image_path);
+//                    long end = System.currentTimeMillis();
+//                    DecimalFormat df = new DecimalFormat("0.00%");
+//                    String show_text =
+//                            "名称：" +  classNames.get((int) result[0]) +
+//                            "\n概率：" + df.format(result[1])  +
+//                            "\n时间：" + (end-start)+ "ms";
+//                    textView.setText(show_text);
+//
+//                    DatabaseHelper databaseHelper = new DatabaseHelper(getActivity());
+//                    SQLiteDatabase sqLiteDatabase = databaseHelper.getWritableDatabase();
+//                    ContentValues cv = new ContentValues();
+//                    cv.put("NAME"," 名称：" +  classNames.get((int) result[0]) +
+//                            " 概率：" + df.format(result[1])  +
+//                            " 预测时间：" + (end-start) + "ms");
+//                    sqLiteDatabase.insert("Users_Table",null,cv);
+//                    sqLiteDatabase.close();
+//
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//    }
 
     // 根据相册的Uri获取图片的路径
     public static String getPathFromURI(Context context, Uri uri) {
@@ -185,7 +239,5 @@ public class AFragment extends Fragment {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
     }
-
-
 
 }

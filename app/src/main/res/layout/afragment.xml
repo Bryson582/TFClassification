@@ -9,15 +9,18 @@
     <ImageView
         android:id="@+id/image_view"
         android:layout_width="match_parent"
-        android:layout_height="400dp" />
+        android:layout_height="410dp"
+        android:background="@drawable/img_9" />
 
     <TextView
         android:id="@+id/result_text"
+        android:gravity="center"
+        android:textStyle="bold"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/image_view"
-        android:text="识别结果"
-        android:textSize="16sp" />
+        android:text="请选择下列按钮"
+        android:textSize="18sp" />
 
 
     <LinearLayout
@@ -41,13 +44,6 @@
             android:layout_weight="1"
             android:text="实时预测" />
 
-
-        <Button
-            android:id="@+id/object_detection"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="目标检测"/>
 
     </LinearLayout>
 

@@ -31,6 +31,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -102,8 +103,6 @@ public class CameraActivity extends AppCompatActivity {
                     }
                 }
             };
-
-
     // 预测相机捕获的图像
     private void predict() {
         // 获取相机捕获的图像
@@ -113,10 +112,11 @@ public class CameraActivity extends AppCompatActivity {
             long start = System.currentTimeMillis();
             float[] result = tfLiteClassificationUtil.predictImage(bitmap);
             long end = System.currentTimeMillis();
-            String show_text = "预测结果标签：" + (int) result[0] +
-                    "\n名称：" +  classNames.get((int) result[0]) +
-                    "\n概率：" + result[1] +
-                    "\n时间：" + (end - start) + "ms";
+            DecimalFormat df = new DecimalFormat("0.00%");
+            String show_text =
+                    "名称：" +  classNames.get((int) result[0]) +
+                            "\n概率：" + df.format(result[1]);
+
             textView.setText(show_text);
         } catch (Exception e) {
             e.printStackTrace();
